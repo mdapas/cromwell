@@ -24,7 +24,7 @@ from google.cloud import storage
 import google.auth
 import logging
 from metadata_comparison.lib.argument_regex import url_regex_validator, gcs_path_regex_validator, workflow_regex_validator
-from metadata_comparison.lib.operation_ids import visit_papi_operations, JsonObject
+from metadata_comparison.lib.operation_ids import visit_papi_operations, CallNameSequence, JsonObject, OperationId
 from metadata_comparison.lib.papi.papi_clients import PapiClients
 from typing import Any, AnyStr, Mapping, Sequence
 
@@ -102,7 +102,10 @@ def find_operation_ids_in_metadata(json_metadata) -> Sequence[AnyStr]:
     # ...
     #
     # We want to extract "projects/broad-dsde-cromwell-dev/operations/01234567891011121314"
-    def call_fn(acc: Sequence[AnyStr], operation_id: AnyStr, path: Sequence[AnyStr], attempt: JsonObject):
+    def call_fn(acc: Sequence[AnyStr],
+                operation_id: OperationId,
+                call_name_sequence: CallNameSequence,
+                attempt: JsonObject) -> None:
         acc.append(operation_id)
 
     return visit_papi_operations(json_metadata, call_fn, initial_accumulator=[])
