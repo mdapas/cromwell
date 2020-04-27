@@ -24,9 +24,9 @@ from google.cloud import storage
 import google.auth
 import logging
 from metadata_comparison.lib.argument_regex import url_regex_validator, gcs_path_regex_validator, workflow_regex_validator
-from metadata_comparison.lib.operation_ids import get_operation_id_number, find_operation_ids_in_metadata
+from metadata_comparison.lib.operation_ids import visit_papi_operations, JsonObject
 from metadata_comparison.lib.papi.papi_clients import PapiClients
-from typing import Mapping, Any
+from typing import Any, AnyStr, Mapping, Sequence
 
 logger = logging.getLogger('metadata_comparison.extractor')
 
@@ -89,6 +89,23 @@ def upload_operations_metadata_json(bucket_name: str, operation_id: str, operati
     operation_upload_path = f'{workflow_gcs_base_path}/operations/{get_operation_id_number(operation_id)}.json'
     formatted_metadata = json.dumps(operations_metadata, indent=2)
     upload_blob(bucket_name, bytes(formatted_metadata, 'utf-8'), operation_upload_path, gcs_storage_client)
+
+
+def find_operation_ids_in_metadata(json_metadata) -> Sequence[AnyStr]:
+    """Finds all instances of PAPI operations IDs in a workflow"""
+    # Eg given:
+    # {
+    #   "calls": {
+    #     "workflow_name.task_name": [
+    #       {
+    #         "jobId": "projects/broad-dsde-cromwell-dev/operations/01234567891011121314",
+    # ...
+    #
+    # We want to extract "projects/broad-dsde-cromwell-dev/operations/01234567891011121314"
+    def call_fn(acc: Sequence[AnyStr], operation_id: AnyStr, path: Sequence[AnyStr], attempt: JsonObject):
+        acc.append(operation_id)
+
+    return visit_papi_operations(json_metadata, call_fn, initial_accumulator=[])
 
 
 def process_workflow(cromwell_url: str, gcs_bucket: str, gcs_path: str, gcs_storage_client: storage.Client, papi_clients: PapiClients, workflow: str) -> None:
