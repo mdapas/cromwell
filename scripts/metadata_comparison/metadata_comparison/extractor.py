@@ -24,23 +24,12 @@ from google.cloud import storage
 import google.auth
 import logging
 from metadata_comparison.lib.argument_regex import url_regex_validator, gcs_path_regex_validator, workflow_regex_validator
-from metadata_comparison.lib.operation_ids import visit_papi_operations, CallNameSequence, JsonObject, OperationId
+from metadata_comparison.lib.operation_ids import get_operation_id_number, visit_papi_operations, CallNameSequence, JsonObject, OperationId
 from metadata_comparison.lib.papi.papi_clients import PapiClients
-from typing import Any, AnyStr, Mapping, Sequence
+from typing import Any, AnyStr, List, Mapping, Sequence
+from metadata_comparison.lib.logging import quieten_chatty_imports, set_log_verbosity
 
 logger = logging.getLogger('metadata_comparison.extractor')
-
-
-def set_log_verbosity(verbose: bool) -> None:
-    if verbose:
-        logging.basicConfig(format='[%(asctime)s] [%(name)s] %(message)s', level=logging.INFO)
-    else:
-        logging.basicConfig(format='[%(asctime)s] [%(name)s] %(message)s', level=logging.WARNING)
-
-
-def quieten_chatty_imports() -> None:
-    logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-    logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
 
 def upload_local_checkout() -> None:
@@ -102,7 +91,7 @@ def find_operation_ids_in_metadata(json_metadata: JsonObject) -> Sequence[AnyStr
     # ...
     #
     # We want to extract "projects/broad-dsde-cromwell-dev/operations/01234567891011121314"
-    def call_fn(acc: Sequence[AnyStr],
+    def call_fn(acc: List[AnyStr],
                 operation_id: OperationId,
                 call_name_sequence: CallNameSequence,
                 attempt: JsonObject) -> None:
